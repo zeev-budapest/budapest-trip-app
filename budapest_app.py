@@ -7,6 +7,7 @@ import requests
 from streamlit_lottie import st_lottie
 from streamlit_option_menu import option_menu
 import plotly.express as px
+import google.generativeai as genai
 
 # ==========================================
 # ⚙️ תצורה, עיצוב ופונקציות בסיס (Features 7, 8, 13)
@@ -107,56 +108,30 @@ if selected == "בית":
     st.caption(f"התקדמות אריזה למזוודה: {progress}%")
     st.progress(progress / 100.0)
 
-    # (15) AI Assistant Interface Placeholder
+   # (15) AI Assistant Interface
     st.divider()
     st.subheader("🤖 בוט הטיול (Gemini)")
-    ai_query = st.text_input("שאל אותי משהו על בודפשט:")
-    if ai_query:
-        st.info("כדי להפעיל את הבוט, יש להטמיע את מפתח ה-API של Google Gemini בקוד.")
-
-# ==========================================
-# 🗺️ מסך מפה ואטרקציות (Features 4, 10, 16, 19)
-# ==========================================
-elif selected == "מפה":
-    tab1, tab2, tab3 = st.tabs(["מפה מרוכזת 🗺️", "אטרקציות 🏰", "שיחון קולי 🗣️"])
+    ai_query = st.text_input("שאל את המדריך המקומי שלך (למשל: איפה כדאי לאכול קיורטוש?):")
     
-    with tab1:
-        places = get_places_data()
-        m = folium.Map(location=[47.4979, 19.0402], zoom_start=13, tiles="CartoDB positron")
-        for i, row in places.iterrows():
-            color = 'blue' if row['type'] == 'אטרקציה' else 'green' if row['type'] == 'קולינריה' else 'orange' if row['type'] == 'ספורט-בר' else 'red'
-            folium.Marker([row['lat'], row['lon']], popup=row['name'], icon=folium.Icon(color=color)).add_to(m)
-        st_folium(m, height=400, use_container_width=True)
-        # (16) Route Optimization
-        st.info("💡 המלצת אלגוריתם מסלול: התחל בבניין הפרלמנט (צפון), רד לטירת בודה, וסיים בערב ב-Szimpla Kert.")
-
-    with tab2:
-        # (4, 10) Cards with dynamic status & images (Using HTML)
-        st.markdown("""
-        <div class="place-card">
-            <h4>🟢 בניין הפרלמנט ההונגרי</h4>
-            <p>פתוח עכשיו עד 18:00. חובה להביא דרכון לבידוק בטחוני.</p>
-        </div>
-        <div class="place-card" style="border-right-color: #28a745;">
-            <h4>🔴 Hungarikum Bisztró</h4>
-            <p>נסגר בקרוב. מסעדה מסורתית, מומלץ להזמין מקום.</p>
-        </div>
-        <div class="place-card" style="border-right-color: #ffc107;">
-            <h4>⚽ Champs Sport Pub</h4>
-            <p>ממוקם באזור הרובע היהודי. משדר את כל משחקי ליגת האלופות.</p>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with tab3:
-        # (19) Hungarian Text-to-Speech (Using Browser JS)
-        st.write("לחץ על המשפט כדי לשמוע איך הונגרי אומר את זה:")
-        phrases = {"תודה רבה": "Köszönöm szépen", "כמה זה עולה?": "Mennyibe kerül?", "חשבון בבקשה": "A számlát kérem"}
-        for heb, hun in phrases.items():
-            st.markdown(f"**{heb}:** {hun}")
-            # הזרקת JS מותאם למנוע הדיבור של הדפדפן בנייד
-            html_audio = f"""<button onclick="let msg = new SpeechSynthesisUtterance('{hun}'); msg.lang='hu-HU'; window.speechSynthesis.speak(msg);" style="background:#ff4b4b; color:white; border:none; padding:5px 10px; border-radius:5px;">🔊 השמע</button>"""
-            st.components.v1.html(html_audio, height=40)
-
+    if ai_query:
+        if "GEMINI_API_KEY" not in st.secrets:
+            st.error("חסר מפתח API בהגדרות השרת!")
+        else:
+            with st.spinner("המדריך חושב..."):
+                try:
+                    # הגדרת המפתח והמודל
+                    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+                    
+                    # הוספנו "הוראות מערכת" כדי שהבוט יענה כמו מדריך תיירים קצר ולעניין
+                    model = genai.GenerativeModel(
+                        'gemini-1.5-flash',
+                        system_instruction="אתה מדריך תיירים מקומי ומומחה לבודפשט. ענה תמיד בעברית. התשובות שלך צריכות להיות קצרות, מדויקות ופרקטיות, כי המשתמש קורא אותן ממסך של טלפון סלולרי תוך כדי הליכה ברחוב. אל תכתוב מגילות."
+                    )
+                    
+                    response = model.generate_content(ai_query)
+                    st.info(response.text)
+                except Exception as e:
+                    st.error(f"הייתה בעיה בתקשורת: {e}")
 # ==========================================
 # 💱 מסך כסף והוצאות (Features 6, 11, 14)
 # ==========================================
