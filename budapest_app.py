@@ -120,7 +120,7 @@ if selected == "בית":
             with st.spinner("המדריך חושב..."):
                 try:
                     # הגדרת המפתח והמודל
-                    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+                    genai.configure(api_key=st.secrets["AIzaSyCB9woyAf3xCamAY3TJUvYs8jgoYZYCHaE"])
                     
                     # הוספנו "הוראות מערכת" כדי שהבוט יענה כמו מדריך תיירים קצר ולעניין
                     model = genai.GenerativeModel(
